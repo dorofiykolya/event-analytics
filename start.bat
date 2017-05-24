@@ -1,0 +1,1 @@
+node analyticServer/index.js %*
