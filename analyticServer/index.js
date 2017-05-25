@@ -145,6 +145,15 @@ const server = http.createServer((req, res) => {
         }
     });
 });
+server.on("error", (e) => {
+    if (e.code == 'EADDRINUSE') {
+        console.log("Address in use, retrying...");
+        setTimeout(() => {
+            server.close();
+            server.listen(port, host);
+        }, 1000);
+    }
+});
 
 function sqlConnect(onConnect) {
     if (!dbConnectId) {
