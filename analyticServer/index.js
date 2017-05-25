@@ -144,6 +144,7 @@ const server = http.createServer((req, res) => {
             res.end('fail');
             console.error("fail-data-error:" + exc);
             console.error("fail-data-content:" + jsonString);
+            console.error("fail-data-url:" + req.url);
         }
     });
 });
