@@ -57,6 +57,7 @@ const server = http.createServer((req, res) => {
             const loginToken = json.loginToken;
             const playerName = json.playerName;
             const deviceTime = json.deviceTime;
+            const fbDeepLink = json.fbDeepLink;
             const timeSourceTicks = json.timeSourceTicks;
             const advertisingId = json.advertisingId;
             const serverHostName = json.serverHostName;
@@ -96,7 +97,8 @@ const server = http.createServer((req, res) => {
                 { "Address": remoteAddress },
                 { "Port": remotePort },
                 { "Family": remoteFamily },
-                { "ClientVersion": clientVersion }
+                { "ClientVersion": clientVersion },
+                { "FBDeepLink": fbDeepLink }
             ];
 
             var keys = [];
