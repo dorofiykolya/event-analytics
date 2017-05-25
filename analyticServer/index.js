@@ -26,6 +26,11 @@ const config = {
 };
 
 const server = http.createServer((req, res) => {
+    if (!req.url.startsWith("/event.php?")) {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end();
+        return;
+    }
     const chunks = [];
     req.on("data", chunk => {
         chunks.push(chunk)
@@ -99,7 +104,8 @@ const server = http.createServer((req, res) => {
                 { "Port": remotePort },
                 { "Family": remoteFamily },
                 { "ClientVersion": clientVersion },
-                { "FBDeepLink": fbDeepLink }
+                { "FBDeepLink": fbDeepLink },
+                { "GetRequest": req.url }
             ];
 
             var keys = [];
