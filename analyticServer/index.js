@@ -142,7 +142,8 @@ const server = http.createServer((req, res) => {
         } catch (exc) {
             res.writeHead(200, { 'Content-Type': 'text/plain' });
             res.end('fail');
-            console.error("fail-data:" + exc);
+            console.error("fail-data-error:" + exc);
+            console.error("fail-data-content:" + jsonString);
         }
     });
 });
