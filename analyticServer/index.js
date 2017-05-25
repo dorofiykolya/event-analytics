@@ -63,6 +63,7 @@ const server = http.createServer((req, res) => {
             const remoteAddress = req.socket.remoteAddress;
             const remotePort = Number(req.socket.remotePort);
             const remoteFamily = req.socket.remoteFamily;
+            const clientVersion = json.clientVersion;
             const data = JSON.stringify(json.data);
             const header = JSON.stringify(req.headers);
 
@@ -94,7 +95,8 @@ const server = http.createServer((req, res) => {
                 { "Headers": header },
                 { "Address": remoteAddress },
                 { "Port": remotePort },
-                { "Family": remoteFamily }
+                { "Family": remoteFamily },
+                { "ClientVersion": clientVersion }
             ];
 
             var keys = [];
@@ -144,7 +146,7 @@ const server = http.createServer((req, res) => {
 
 function sqlConnect(onConnect) {
     if (!dbConnectId) {
-        console.log("try to connect to the database:" + config);
+        console.log("try to connect to the database[user:" + config.user + ", server:" + config.server + ", db:" + config.database + "]");
         sql.connect(config, error => {
             if (!server.listening) {
                 server.listen(port, host, () => {
