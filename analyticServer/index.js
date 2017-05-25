@@ -9,10 +9,14 @@ const defaultPort = 80;
 var port = Number(parameters.port) || defaultPort;
 var host = parameters.host || localhost;
 
+var dbReconnectTimeout = 10000;
 var dbHost = parameters.dbHost || localhost;
 var dbUser = parameters.dbUser || "test";
 var dbPassword = parameters.dbPassword || "test";
 var dbName = parameters.dbName || "analytics";
+
+var dbConnectId = null;
+var onDbConnect = [];
 
 const config = {
     user: dbUser,
@@ -61,66 +65,48 @@ const server = http.createServer((req, res) => {
         const data = JSON.stringify(json.data);
         const header = JSON.stringify(req.headers);
 
-        var keys = [
-            "UserId",
-            "EventName",
-            "AdvertisingId",
-            "TimeSourceTicks",
-            "DeviceTime",
-            "ServerHostname",
-            "PlayerName",
-            "LoginToken",
-            "Platform",
-            "DeviceModel",
-            "DeviceName",
-            "DeviceType",
-            "DeviceUniqueIdentifier",
-            "OperatingSystem",
-            "SystemMemorySize",
-            "GraphicsDeviceID",
-            "GraphicsDeviceName",
-            "GraphicsDeviceType",
-            "GraphicsDeviceVendor",
-            "GraphicsShaderLevel",
-            "ScreenDpi",
-            "ScreenWidth",
-            "ScreenHeight",
-            "Data",
-            "Headers",
-            "Address",
-            "Port",
-            "Family"
+        var keyValue = [
+            { "UserId": userId },
+            { "EventName": eventName },
+            { "AdvertisingId": advertisingId },
+            { "TimeSourceTicks": timeSourceTicks },
+            { "DeviceTime": deviceTime },
+            { "ServerHostname": serverHostName },
+            { "PlayerName": playerName },
+            { "LoginToken": loginToken },
+            { "Platform": platform },
+            { "DeviceModel": deviceModel },
+            { "DeviceName": deviceName },
+            { "DeviceType": deviceType },
+            { "DeviceUniqueIdentifier": deviceUniqueIdentifier },
+            { "OperatingSystem": operatingSystem },
+            { "SystemMemorySize": systemMemorySize },
+            { "GraphicsDeviceID": graphicsDeviceID },
+            { "GraphicsDeviceName": graphicsDeviceName },
+            { "GraphicsDeviceType": graphicsDeviceType },
+            { "GraphicsDeviceVendor": graphicsDeviceVendor },
+            { "GraphicsShaderLevel": graphicsShaderLevel },
+            { "ScreenDpi": screenDpi | 0 },
+            { "ScreenWidth": screenWidth },
+            { "ScreenHeight": screenHeight },
+            { "Data": data },
+            { "Headers": header },
+            { "Address": remoteAddress },
+            { "Port": remotePort },
+            { "Family": remoteFamily }
         ];
-        var values = [
-            userId,
-            eventName,
-            advertisingId,
-            timeSourceTicks,
-            deviceTime,
-            serverHostName,
-            playerName,
-            loginToken,
-            platform,
-            deviceModel,
-            deviceName,
-            deviceType,
-            deviceUniqueIdentifier,
-            operatingSystem,
-            systemMemorySize,
-            graphicsDeviceID,
-            graphicsDeviceName,
-            graphicsDeviceType,
-            graphicsDeviceVendor,
-            graphicsShaderLevel,
-            screenDpi | 0,
-            screenWidth,
-            screenHeight,
-            data,
-            header,
-            remoteAddress,
-            remotePort,
-            remoteFamily
-        ];
+
+        var keys = [];
+        var values = [];
+
+        for (var i = 0; i < keyValue.length; i++) {
+            var element = keyValue[i];
+            for (var key in element) {
+                var value = element[key];
+                keys[i] = key;
+                values[i] = value;
+            }
+        }
 
         for (var i = 0; i < values.length; i++) {
             var element = values[i];
@@ -131,25 +117,59 @@ const server = http.createServer((req, res) => {
 
         var query = util.format("INSERT INTO dbo.Event (%s) VALUES (%s)", keys.join(", "), values.join(", "));
 
-        new sql.Request().query(query, (err, result) => {
-            if (err) {
-                console.error("sqlRequest-error:" + err.message);
-            } else {
-                console.log("sqlRequest-success: eventName:" + eventName);
-            }
-        });
+        function sqlRequest() {
+            new sql.Request().query(query, (err, result) => {
+                if (err) {
+                    console.error("sqlRequest-error:" + err.message);
+                    if (err.message.indexOf("Connection is closed") != -1 || err.message.indexOf("No connection") != -1) {
+                        sqlConnect(sqlRequest);
+                    }
+                } else {
+                    console.log("sqlRequest-success: eventName:" + eventName);
+                }
+            });
+        }
+
+        sqlRequest();
 
         res.writeHead(200, { 'Content-Type': 'text/plain' });
         res.end('ok');
     });
 });
 
-sql.connect(config, error => {
+function sqlConnect(onConnect) {
+    if (!dbConnectId) {
+        console.log("try to connect to the database");
+        sql.connect(config, error => {
+            if (!server.listening) {
+                server.listen(port, host, () => {
+                    console.log("start listen at:" + host + ":" + port);
+                });
+            }
+            if (error) {
+                console.error(error.message);
 
-    server.listen(port, host, () => {
-        console.log("start listen at:" + host + ":" + port);
-    });
-});
+                sql.close();
+                console.log("try to connect to the database after 5 seconds");
+                dbConnectId = setTimeout(() => {
+                    dbConnectId = null;
+                    sqlConnect(onConnect);
+                }, dbReconnectTimeout);
+
+            } else {
+                onDbConnect.forEach(function (element) {
+                    element();
+                }, this);
+                onDbConnect.length = 0;
+            }
+        });
+    }
+    else if (onConnect) {
+        if (onDbConnect.indexOf(onConnect) == -1) {
+            onDbConnect.push(onConnect);
+        }
+    }
+}
 
 function formatData(data) {
     if (typeof (data) == "string") {
@@ -157,3 +177,5 @@ function formatData(data) {
     }
     return data;
 }
+
+sqlConnect();
