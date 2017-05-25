@@ -31,9 +31,10 @@ const server = http.createServer((req, res) => {
         chunks.push(chunk)
     });
     req.on("end", () => {
+        var jsonString = "";
         try {
             const buffer = Buffer.concat(chunks);
-            const jsonString = String(buffer);
+            jsonString = String(buffer);
 
             const json = JSON.parse(jsonString);
 
