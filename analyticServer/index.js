@@ -184,6 +184,9 @@ function formatData(data) {
     if (typeof (data) == "string") {
         return "'" + data + "'";
     }
+    if (data == null) {
+        return "null";
+    }
     return data;
 }
 
