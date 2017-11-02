@@ -25,6 +25,47 @@ const config = {
     database: dbName
 };
 
+const dbTableQuery = "IF NOT EXISTS (select * from INFORMATION_SCHEMA.TABLES where TABLE_NAME = 'Event' AND TABLE_SCHEMA = 'dbo')" +
+"CREATE TABLE Event(													   " +
+"	[UserId] 					BIGINT 	      NOT NULL," +
+"	[EventName] 				NVARCHAR(100) NOT NULL," +
+"	[AdvertisingId] 			NVARCHAR(200),		   " +
+"	[Data]						NVARCHAR(500),		   " +
+"	[TimeSourceTicks] 			BIGINT,       		   " +
+"	[DeviceTime]				NVARCHAR(100),		   " +
+"	[ServerHostname]			NVARCHAR(100),		   " +
+"	[PlayerName]				NVARCHAR(100),		   " +
+"	[LoginToken]				NVARCHAR(200),		   " +
+"	[Platform]			  		NVARCHAR(100),		   " +
+"                                             		   " +
+"	[DeviceModel]			  	NVARCHAR(100),		   " +
+"   [DeviceName]			    NVARCHAR(100),		   " +
+"	[DeviceType]			  	NVARCHAR(100),		   " +
+"	[DeviceUniqueIdentifier] 	NVARCHAR(100),		   " +
+"                                             		   " +
+"	[OperatingSystem] 			NVARCHAR(100),		   " +
+"	[SystemMemorySize] 			BIGINT,       		   " +
+"                                             		   " +
+"	[Address]					NVARCHAR(100),		   " +
+"	[Port]						INT,          		   " +
+"	[Family]					NVARCHAR(100),		   " +
+"                                             		   " +
+"	[GraphicsDeviceID] 			NVARCHAR(100),		   " +
+"	[GraphicsDeviceName] 		NVARCHAR(100),		   " +
+"	[GraphicsDeviceType] 		NVARCHAR(100),		   " +
+"	[GraphicsDeviceVendor] 		NVARCHAR(100),		   " +
+"	[GraphicsShaderLevel] 		INT,          		   " +
+"                                             		   " +
+"	[ScreenDpi] 				INT,          		   " +
+"	[ScreenWidth] 				INT,          		   " +
+"	[ScreenHeight] 				INT,          		   " +
+"                                             		   " +
+"	[Headers]					NVARCHAR(500),		   " +
+"	[ClientVersion]				NVARCHAR(100),		   " +
+"	[FBDeepLink]				NVARCHAR(500),		   " +
+"	[GetRequest]				NVARCHAR(500) 		   " +
+")";
+
 const server = http.createServer((req, res) => {
     if (!req.url.startsWith("/event.php?")) {
         res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -185,6 +226,17 @@ function sqlConnect(onConnect) {
                 }, dbReconnectTimeout);
 
             } else {
+				new sql.Request().query(dbTableQuery, (e, r) =>
+				{
+					if (e) {
+                        console.error("CREATE TABLE sqlRequest-error:" + e.message);
+                        if (e.message.indexOf("Connection is closed") != -1 || e.message.indexOf("No connection") != -1) {
+                            sqlConnect(sqlRequest);
+                        }
+                    } else {
+                        console.log("CREATE TABLE sqlRequest-success");
+                    }
+				});
                 onDbConnect.forEach(function (element) {
                     element();
                 }, this);
